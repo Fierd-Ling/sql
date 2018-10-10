@@ -18,8 +18,8 @@ and sc1.class1>sc2.class2)as sc3 where sc3.SId=student.SId
 
 （2）查询同时存在" 01 "课程和" 02 "课程的情况
 select * from 
-    (select * from sc where sc.CId = '01') as t1, 
-    (select * from sc where sc.CId = '02') as t2
+​    (select * from sc where sc.CId = '01') as t1, 
+​    (select * from sc where sc.CId = '02') as t2
 where t1.SId = t2.SId;
 
 
@@ -52,3 +52,28 @@ select student.Sname,student.SId,sc1.avgscore from student,(
 select AVG(score) as avgscore,sid from sc group  by sid HAVING avgscore>=60)as sc1 where 
 sc1.sid=student.SId ;
 -- 尽量内层限制返回条数减少二次查询时间
+
+（6）查询在 SC 表存在成绩的学生信息
+select SQL_NO_CACHE * from student where sid in (SELECT DISTINCT sid from sc);
+
+select SQL_NO_CACHE DISTINCT student.*
+from student,sc
+where student.SId=sc.SId
+
+
+
+（6）查询所有同学的学生编号、学生姓名、选课总数、所有课程的总成绩(没成绩的显示为 null )
+
+select sc1.co,sc1.su,student.Sname,student.Sname,student.SId from (
+select SId,count(*) as co,SUM(score) as su from sc GROUP BY SId) 
+as sc1 RIGHT JOIN student on student.SId=sc1.SId ;
+
+-- 缺失数据的表放置在前用右查询，缺失数据在后用左查询（右缺钱，左缺后）
+
+
+
+（7）查有成绩的学生信息
+select * from student where EXISTS(select  sc.score from sc where student.SId=sc.SId);
+
+-- EXISTS 适合子查询表数据比外查询的数据大的情况，in先是把子查询中结果缓存然后挨个和外查询比较，exists走的是数据库
+select * from student where SId in (select  DISTINCT SId from sc);
