@@ -77,3 +77,68 @@ select * from student where EXISTS(select  sc.score from sc where student.SId=sc
 
 -- EXISTS 适合子查询表数据比外查询的数据大的情况，in先是把子查询中结果缓存然后挨个和外查询比较，exists走的是数据库
 select * from student where SId in (select  DISTINCT SId from sc);
+
+
+
+（8）查询「李」姓老师的数量
+select count(*) from teacher where Tname like '李%'
+
+
+
+（9）查询学过「张三」老师授课的同学的信息
+select student.Sage,student.SId,student.Sname,student.Ssex from student,sc,(select course.cid as cid from course ,teacher where teacher.TId = course.TId and teacher.Tname='张三') as cd
+
+where student.SId=sc.SId and sc.CId= cd.cid  
+
+优化：
+
+select * from course,sc,student,teacher where student.SId =sc.SId and sc.CId=course.CId and course.TId=teacher.TId
+and teacher.Tname='张三';
+
+
+
+（10）查询没有学全所有课程的同学的信息(存在一门课都没有学的学生)
+select * from student where sid not in (
+select sid from sc group by  sid HAVING count(cid) =( select count(*) from course))
+
+
+
+（11）查询至少有一门课与学号为" 01 "的同学所学相同的同学的信息
+ select DISTINCT student.Sname from student,sc, (select  cid from sc where sid='01') as s1 
+where sc.CId=s1.cid and sc.SId= student.SId
+
+多表关联：select DISTINCT student.Sname from student,sc s1,sc s2 where student.SId=s1.SId and s1.CId=s2.CId and s2.SId=01
+
+
+
+（12）查询和" 01 "号的同学学习的课程完全相同的其他同学的信息 （只要有课程和01的重合就选出来，总数和01的相等就必定是和01是一样的）
+select * from student where sid in (select sid from sc where cid in(select cid from sc where sid=01) group by 
+SId HAVING count(cid)=(select count(cid) from sc where sid=01))
+
+
+
+（13）查询没学过"张三"老师讲授的任一门课程的学生姓名（有存在没有上过任何一门课的情况）
+select * from student where sid not in(select DISTINCT sid from sc where cid in(
+SELECT cid from course,teacher where course.TId=teacher.TId and teacher.Tname='张三'
+))
+
+内部级联查询
+
+select * from student where sid not in(select sid from sc,teacher,course where sc.CId=course.CId and 
+course.TId=teacher.TId and teacher.Tname='张三');
+
+
+
+（14）查询两门及其以上不及格课程的同学的学号，姓名及其平均成绩
+ select s.sco,student.SId,student.Sname from student,(select sid,avg(score) sco from sc where sc.score<60 
+group by sid HAVING count(sc.score)>1)as s where s.sid= student.SId
+
+ 直接级联
+
+select student.sid,avg(sc.score),student.Sname from student,sc where sc.SId=student.SId and 
+sc.score<60 group by sc.SId HAVING count(sc.score)>1
+
+
+
+（15）检索" 01 "课程分数小于 60，按分数降序排列的学生信息
+select student.sid,sc.score,student.Sname from sc,student where sc.SId=student.SId and  sc.cid ='01' and sc.score<60 ORDER BY sc.score DESC 
